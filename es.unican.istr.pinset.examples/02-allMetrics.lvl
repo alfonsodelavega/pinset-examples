@@ -1,0 +1,37 @@
+import "../es.unican.istr.pinset.examples.common/lib/classDiagramMetrics.eol";
+
+post {
+  "Generation finished".println();
+}
+
+// ALL metrics
+dataset allClassMetrics over class : Model!Class {
+  column name : class.name
+  // CK metrics
+  column CK_WMC : class.operations.size() // simplified due to weight = 1
+  column CK_DIT : class.dit()
+  column CK_NOC : class.noc()
+  column CK_CBO : class.cbo()
+  // OO metrics
+  column OO_FanIn : class.fanIn().size()
+  column OO_FanOut : class.fanOut().size()
+  column OO_NOF : class.`features`.size()
+  column OO_NOA : class.`attributes`.size()
+  column OO_NOPA : class.`attributes`
+                        .select(a | a.visibility = UML!VisibilityKind#public)
+                        .size()
+  column OO_NOPRA : class.`attributes`
+                         .select(a | a.visibility = UML!VisibilityKind#public)
+                         .size()
+  column OO_NOIA : (class.allAttributes().size() -
+                    class.`attributes`.size())
+  column OO_NOM : class.operations.size()
+  column OO_NOPM : class.operations
+                        .select(o | o.visibility = UML!VisibilityKind#public)
+                        .size()
+  column OO_NOPRM : class.operations
+                        .select(o | o.visibility = UML!VisibilityKind#private)
+                        .size()
+  column OO_NOIM : (class.allOperations.size -
+                    class.operations.size())
+}

@@ -1,0 +1,26 @@
+@namespace(uri="dataset", prefix="")
+
+package Dataset;
+
+class Datasets {
+  val Dataset[*] datasets;
+}
+
+class Dataset {
+  attr String[1] name;
+  val Column[*] columns;
+  val Row[*] rows;
+}
+
+class Row {
+  val Cell[*] cells;
+}
+
+class Column {
+  attr String[1] name;
+}
+
+class Cell {
+  attr String[1] value;
+  ref Column column;
+}

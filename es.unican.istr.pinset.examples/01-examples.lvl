@@ -1,0 +1,82 @@
+import "../es.unican.istr.pinset.examples.common/lib/classDiagramMetrics.eol";
+
+post {
+  "Generation finished".println();
+}
+
+// Overview example
+operation Model!Class dit(): Integer {
+  var dit = 0;
+  var node = self;
+  while (not node.superClass.isEmpty()) {
+    node = node.superClass.first;
+    dit += 1;
+  }
+  return dit;
+}
+
+dataset basicClassMetrics over class : Model!Class {
+  column name : class.name
+  column isAbstract : class.isAbstract
+  column parentName {
+    var name = "";
+    if (not class.superClass.isEmpty) {
+      name = class.superClass.first().name;
+    }
+    return name;
+  }
+  column numberOfAttributes : class.`attributes`.size()
+  column numberOfMethods : class.operations.size()
+  column numberOfFeatures : class.`features`.size()
+  // possibility if previous columns are "visible" (easy I think)
+  // column numberOfFeatures : numberOfAttributes + numberOfMethods
+  column DIT : class.dit()
+}
+
+// features accessor example
+dataset classBasicInfo over class : Model!Class {
+  properties [name, isAbstract]
+  reference package[name]
+}
+
+// grid example
+dataset attributesByVisibility over class : Model!Class {
+  properties [name]
+  grid {
+    keys : Sequence{UML!VisibilityKind#public,
+                    UML!VisibilityKind#protected,
+                    UML!VisibilityKind#private,
+                    UML!VisibilityKind#package}
+    header : "#" + key + "_attrs"
+    body : class.`attributes`
+                .select(a | a.visibility = key)
+                .size()
+  }
+}
+
+// rows filtering example
+dataset classSelectionGuard over class : Model!Class {
+  guard : class.isAbstract
+  properties [name]
+}
+
+dataset classSelectionFrom over class : Model!Class 
+    from : Model!Class.all().select(c | c.isAbstract) {
+  properties [name]
+}
+
+// typeless example
+pre {
+  var allClasses = Model!Class.all();
+}
+
+dataset thresholdMetrics over threshold 
+    from : Sequence{0,1,2,5,10} {
+  column threshold : threshold
+  column classes_with_NOA_leq_th : allClasses.select(c | c.`attributes`.size() <= threshold).size()
+  column classes_with_NOM_leq_th : allClasses.select(c | c.operations.size() <= threshold).size()
+  column classes_with_FanIn_geq_th : allClasses.select(c | c.fanIn().size() >= threshold).size()
+  column classes_with_FanOut_geq_th : allClasses.select(c | c.fanOut().size() >= threshold).size()
+}
+
+

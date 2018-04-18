@@ -1,0 +1,85 @@
+// Metrics calculated over UML class diagrams
+// Requires the following models (and names!)
+//     Model - The UML instance model to operate with
+//     UML   - The UML metamodel's EMF package from the registry
+
+operation Model!Class dit(): Integer {
+  var dit = 0;
+  var node = self;
+  while (not node.superClass.isEmpty()) {
+    node = node.superClass.first;
+    dit += 1;
+  }
+  return dit;
+}
+
+operation Model!Class noc(): Integer {
+  return Model!Class.allInstances.select(class |
+                                         class.superClass.includes(self))
+                                 .size;
+}
+
+operation Model!Class cbo(): Integer {
+  var cboClasses = self.fanIn();
+  cboClasses.addAll(self.fanOut());
+  return cboClasses.size();
+}
+
+// Other classes referenced by the class
+operation Model!Class fanOut(): Set {
+  var fanOutClasses = self.fanOutAttributes();
+  fanOutClasses.addAll(self.fanOutAssociations());
+  fanOutClasses.remove(self);
+  return fanOutClasses;
+}
+
+
+// Other classes referenced by the class (only attributes into account)
+operation Model!Class fanOutAttributes(): Set {
+  return  self.attributes.select(a | 
+                                 not a.type.isKindOf(UML!PrimitiveType))
+                         .collect(a | a.type)
+                         .asSet;
+}
+
+// Other classes referenced by the class (only associations into account)
+operation Model!Class fanOutAssociations(): Set {
+  var fanOutClasses = 
+      Model!Association.allInstances()
+                       .collect(a |
+                                a.memberEnd.select(e | e.owner = self)
+                                           .collect(e | e.type))
+                       .flatten
+                       .asSet;
+  return fanOutClasses;
+}
+
+// Other classes that reference the class
+operation Model!Class fanIn(): Set {
+  var fanInClasses = self.fanInAttributes();
+  fanInClasses.addAll(self.fanInAssociations());
+  fanInClasses.remove(self);
+  return fanInClasses;
+}
+
+// Other classes that reference the class (only attributes into account)
+operation Model!Class fanInAttributes(): Set {
+  return Model!Class.allInstances()
+                    .select(c | not c.attributes
+                                     .select(a | a.type = self)
+                                     .isEmpty)
+                    .asSet;
+}
+
+// Other classes that reference the class (only associations into account)
+operation Model!Class fanInAssociations(): Set {
+  return Model!Association.allInstances()
+                          .collect(a |
+                                   a.memberEnd
+                                    .select(e |
+                                            e.type = self
+                                        and e.owner.type <> UML!Association)
+                                    .collect(e | e.owner))
+                          .flatten
+                          .asSet;
+}
