@@ -79,4 +79,19 @@ dataset thresholdMetrics over threshold
   column classes_with_FanOut_geq_th : allClasses.select(c | c.fanOut().size() >= threshold).size()
 }
 
-
+// nested from example
+dataset nestedFrom over class : Model!Class {
+  properties [name]
+  from package : class.package {
+    properties[name]
+    column numClasses : package.ownedType.size
+    grid {
+      keys : 1.to(5)
+      header : key
+      body : key * 10
+    }
+    from types : package.ownedType {
+      column num : types.size
+    }
+  }
+}
