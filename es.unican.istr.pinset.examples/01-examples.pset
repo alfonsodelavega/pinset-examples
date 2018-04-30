@@ -30,7 +30,7 @@ dataset basicClassMetrics over class : Model!Class {
   column name : class.name
   column isAbstract : class.isAbstract
   column parentName {
-    var name = "";
+    var name = null;
     if (not class.superClass.isEmpty) {
       name = class.superClass.first().name;
     }
@@ -96,13 +96,38 @@ dataset nestedFrom over class : Model!Class {
   from package : class.package {
     properties[name]
     column numClasses : package.ownedType.size
-    grid {
-      keys : 1.to(5)
-      header : key
-      body : key * 10
-    }
     from types : package.ownedType {
-      column num : types.size
+      column size : types.select(t | t.isKindOf(Model!Class)).size()
     }
+  }
+  from children : class.children() {
+    column size : children.size()
+    // avoids division by zero
+    column avg_NOA {
+      if (not children.isEmpty()) {
+        return children.collect(ch | ch.attributes.size).sum() / size;
+      }
+      return null;
+    }
+    // silences errors instead
+    @silent
+    column avg_NOA2 : children.collect(ch | ch.attributes.size).sum() / size
+  }
+}
+
+// post-processing example
+dataset postProcessing over class : Model!Class {
+  properties [name]
+  $normalize allClasses.size()
+  column CK_NOC_Norm : class.children().size()
+  @normalize
+  column CK_NOC_Norm2 : class.children().size()
+  @fillNulls none
+  column parentName {
+    var name = null;
+    if (not class.superClass.isEmpty) {
+      name = class.superClass.first().name;
+    }
+    return name;
   }
 }

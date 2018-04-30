@@ -25,9 +25,12 @@ operation Model!Class dit(): Integer {
 }
 
 operation Model!Class noc(): Integer {
+  return self.children().size;
+}
+
+operation Model!Class children(): Collection {
   return Model!Class.allInstances.select(class |
-                                         class.superClass.includes(self))
-                                 .size;
+                                         class.superClass.includes(self));
 }
 
 operation Model!Class cbo(): Integer {
