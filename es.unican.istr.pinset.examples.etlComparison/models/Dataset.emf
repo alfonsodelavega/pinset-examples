@@ -13,7 +13,7 @@
 
 package Dataset;
 
-class Datasets {
+class Model {
   val Dataset[*] datasets;
 }
 
@@ -32,6 +32,6 @@ class Column {
 }
 
 class Cell {
-  attr String[1] value;
+  attr Object[1] value;
   ref Column column;
 }

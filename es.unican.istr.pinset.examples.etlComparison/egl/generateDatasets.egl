@@ -14,10 +14,10 @@
   TemplateFactory.setTemplateRoot(".");
   TemplateFactory.setOutputRoot("../gen/");
 
-  var datasets = Dataset!Datasets.all.first;
+  var modelRoot = Dataset!Model.all.first;
   var template = TemplateFactory.load("dataset2csv.egl");
 
-  for (dataset in datasets.datasets) {
+  for (dataset in modelRoot.datasets) {
     template.populate("dataset", dataset);
     template.process();
     template.generate(dataset.name + ".csv");

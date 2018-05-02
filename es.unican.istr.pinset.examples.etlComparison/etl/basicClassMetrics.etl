@@ -16,9 +16,9 @@ post {
 }
 
 pre {
-  var datasets = new Dataset!Datasets();
+  var modelRoot = new Dataset!Model();
   var basicMetricsDataset = createDataset("BasicClassMetrics");
-  datasets.datasets.add(basicMetricsDataset);
+  modelRoot.datasets.add(basicMetricsDataset);
   var bmd_c_name = createColumn("name");
   var bmd_c_isAbstract = createColumn("isAbstract");
   var bmd_c_parentName = createColumn("parentName");
