@@ -50,6 +50,12 @@ dataset classBasicInfo over class : Model!Class {
   reference package[name]
 }
 
+// features accessor example (extended)
+dataset classBasicInfoExtended over class : Model!Class {
+  properties [name, isAbstract, isLeaf, qualifiedName, visibility]
+  reference package[name, qualifiedName]
+}
+
 // grid example
 dataset attributesByVisibility over class : Model!Class {
   properties [name]
@@ -59,7 +65,7 @@ dataset attributesByVisibility over class : Model!Class {
                     UML!VisibilityKind#private,
                     UML!VisibilityKind#package}
     header : "#" + key + "_attrs"
-    body : class.`attributes`
+    body : class.attributes
                 .select(a | a.visibility = key)
                 .size()
   }
@@ -84,7 +90,7 @@ pre {
 dataset thresholdMetrics over threshold 
     from : Sequence{0,1,2,5,10} {
   column threshold : threshold
-  column classes_with_NOA_leq_th : allClasses.select(c | c.`attributes`.size() <= threshold).size()
+  column classes_with_NOA_leq_th : allClasses.select(c | c.attributes.size() <= threshold).size()
   column classes_with_NOM_leq_th : allClasses.select(c | c.operations.size() <= threshold).size()
   column classes_with_FanIn_geq_th : allClasses.select(c | c.fanIn().size() >= threshold).size()
   column classes_with_FanOut_geq_th : allClasses.select(c | c.fanOut().size() >= threshold).size()
@@ -95,11 +101,14 @@ dataset nestedFrom over class : Model!Class {
   properties [name]
   from package : class.package {
     properties[name]
-    column numClasses : package.ownedType.size
     from types : package.ownedType {
-      column size : types.select(t | t.isKindOf(Model!Class)).size()
+      column numClasses : types.select(t | t.isKindOf(Model!Class)).size()
     }
   }
+}
+
+dataset nestedFrom2 over class : Model!Class {
+  properties [name]
   from children : class.children() {
     column size : children.size()
     // avoids division by zero

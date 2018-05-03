@@ -1,0 +1,91 @@
+/*******************************************************************************
+ * Copyright (c) 2018 University of York, University of Cantabria.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Alfonso de la Vega - Initial set of examples
+ ******************************************************************************/
+
+import "../../es.unican.istr.pinset.examples.common/lib/classDiagramMetrics.eol";
+
+post {
+  "Transformation finished".println();
+}
+
+pre {
+  var modelRoot = new Dataset!Model();
+  var allMetricsDataset = createDataset("02-allMetricsETL");
+  modelRoot.datasets.add(allMetricsDataset);
+  var c_name = createColumn("name");
+  // CK metrics
+  var c_CK_WMC = createColumn("CK_WMC");
+  var c_CK_DIT = createColumn("CK_DIT");
+  var c_CK_NOC = createColumn("CK_NOC");
+  var c_CK_CBO = createColumn("CK_CBO");
+  // OO metrics
+  var c_OO_FanIn = createColumn("OO_FanIn");
+  var c_OO_FanOut = createColumn("OO_FanOut");
+  var c_OO_NOF = createColumn("OO_NOF");
+  var c_OO_NOA = createColumn("OO_NOA");
+  var c_OO_NOPA = createColumn("NOPA");
+  var c_OO_NOPRA = createColumn("NOPRA");
+  var c_OO_NOIA = createColumn("NOIA");
+  var c_OO_NOM = createColumn("NOM");
+  var c_OO_NOPM = createColumn("NOPM");
+  var c_OO_NOPRM = createColumn("NOPRM");
+  var c_OO_NOIM = createColumn("NOIM");
+  allMetricsDataset.columns =
+      Sequence{c_name, c_CK_WMC, c_CK_DIT, c_CK_NOC, c_CK_CBO,
+               c_OO_FanIn, c_OO_FanOut, c_OO_NOF,
+               c_OO_NOA, c_OO_NOPA, c_OO_NOPRA, c_OO_NOIA,
+               c_OO_NOM, c_OO_NOPM, c_OO_NOPRM, c_OO_NOIM};
+}
+
+rule AllMetrics
+transform class : Model!Class
+       to row : Dataset!Row {
+  allMetricsDataset.rows.add(row);
+  row.cells.add(createCell(c_name, class.name));
+  row.cells.add(createCell(c_CK_WMC, class.operations.size()));
+  row.cells.add(createCell(c_CK_DIT, class.dit()));
+  row.cells.add(createCell(c_CK_NOC, class.noc()));
+  row.cells.add(createCell(c_CK_CBO, class.cbo()));
+  row.cells.add(createCell(c_OO_FanIn, class.fanIn().size()));
+  row.cells.add(createCell(c_OO_FanOut, class.fanOut().size()));
+  row.cells.add(createCell(c_OO_NOF, class.features.size()));
+  row.cells.add(createCell(c_OO_NOA, class.attributes.size()));
+  row.cells.add(createCell(c_OO_NOPA,
+    class.attributes.select(a | a.visibility = UML!VisibilityKind#public).size()));
+  row.cells.add(createCell(c_OO_NOPRA,
+    class.attributes.select(a | a.visibility = UML!VisibilityKind#private).size()));
+  row.cells.add(createCell(c_OO_NOIA, class.allAttributes().size() - class.attributes.size()));
+  row.cells.add(createCell(c_OO_NOM, class.operations.size()));
+  row.cells.add(createCell(c_OO_NOPM,
+    class.operations.select(o | o.visibility = UML!VisibilityKind#public).size()));
+  row.cells.add(createCell(c_OO_NOPRM,
+    class.operations.select(o | o.visibility = UML!VisibilityKind#private).size()));
+  row.cells.add(createCell(c_OO_NOIM, class.allOperations.size -
+                                      class.operations.size()));
+}
+
+operation createDataset(datasetName: String): Dataset!Dataset {
+  var d = new Dataset!Dataset();
+  d.name = datasetName;
+  return d;
+}
+
+operation createColumn(colName: String): Dataset!Column {
+  var col = new Dataset!Column();
+  col.name = colName;
+  return col;
+}
+
+operation createCell(col: Dataset!Column, val: Any): Dataset!Cell {
+  var cell = new Dataset!Cell();
+  cell.column = col;
+  cell.value = val;
+  return cell;
+}

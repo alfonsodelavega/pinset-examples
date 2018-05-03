@@ -1,0 +1,193 @@
+/*******************************************************************************
+ * Copyright (c) 2018 University of York, University of Cantabria.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Alfonso de la Vega - Initial set of examples
+ ******************************************************************************/
+
+import "../../es.unican.istr.pinset.examples.common/lib/classDiagramMetrics.eol";
+
+// BasicClassMetrics example can be found in basicClassMetrics.etl
+
+pre classBasicInfoPre {
+  var modelRoot = new Dataset!Model();
+  var classBasicInfoDataset = createDataset("classBasicInfo");
+  modelRoot.datasets.add(classBasicInfoDataset);
+  var cbi_c_name = createColumn("name");
+  var cbi_c_isAbstract = createColumn("isAbstract");
+  var cbi_c_packageName = createColumn("package_name");
+  classBasicInfoDataset.columns = Sequence {cbi_c_name, cbi_c_isAbstract,
+                                            cbi_c_packageName};
+}
+@greedy
+rule ClassBasicInfo
+transform class : Model!Class
+       to row : Dataset!Row {
+  classBasicInfoDataset.rows.add(row);
+  row.cells.add(createCell(cbi_c_name, class.name));
+  row.cells.add(createCell(cbi_c_isAbstract, class.isAbstract));
+  var packageName = null;
+  if (class.package <> null) {packageName = class.package.name;}
+  row.cells.add(createCell(cbi_c_packageName, packageName));
+}
+
+pre classBasicInfoExtendedPre {
+  var cbiExtendedDataset = createDataset("classBasicInfoExtended");
+  modelRoot.datasets.add(cbiExtendedDataset);
+  var cbie_c_name = createColumn("name");
+  var cbie_c_isAbstract = createColumn("isAbstract");
+  var cbie_c_isLeaf = createColumn("isLeaf");
+  var cbie_c_qualifiedName = createColumn("qualifiedName");
+  var cbie_c_visibility = createColumn("visibility");
+  var cbie_c_packageName = createColumn("package_name");
+  var cbie_c_packageQualifiedName = createColumn("package_qualifiedName");
+  cbiExtendedDataset.columns = Sequence {cbie_c_name, cbie_c_isAbstract,
+                                         cbie_c_isLeaf, cbie_c_qualifiedName,
+                                         cbie_c_visibility, cbie_c_packageName,
+                                         cbie_c_packageQualifiedName};
+}
+@greedy
+rule ClassBasicInfoExtended
+transform class : Model!Class
+       to row : Dataset!Row {
+  cbiExtendedDataset.rows.add(row);
+  row.cells.add(createCell(cbie_c_name, class.name));
+  row.cells.add(createCell(cbie_c_isAbstract, class.isAbstract));
+  row.cells.add(createCell(cbie_c_isLeaf, class.isLeaf));
+  row.cells.add(createCell(cbie_c_qualifiedName, class.qualifiedName));
+  row.cells.add(createCell(cbie_c_visibility, class.visibility));
+  var packageName = null;
+  if (class.package <> null) {packageName = class.package.name;}
+  row.cells.add(createCell(cbie_c_packageName, packageName));
+  var packageQualifiedName = "";
+  if (class.package <> null) {packageQualifiedName = class.package.qualifiedName;}
+  row.cells.add(createCell(cbie_c_packageQualifiedName, packageQualifiedName));
+}
+
+pre classSelectionPre {
+  var csDataset = createDataset("classSelection");
+  modelRoot.datasets.add(csDataset);
+  var cs_c_name = createColumn("name");
+  csDataset.columns = Sequence {cs_c_name};
+}
+@greedy
+rule ClassSelection
+transform class : Model!Class
+       to row : Dataset!Row {
+    guard : class.isAbstract 
+  csDataset.rows.add(row);
+  row.cells.add(createCell(cs_c_name, class.name));
+}
+
+pre attributesByVisibilityPre {
+  var visDataset = createDataset("attributesByVisibility");
+  modelRoot.datasets.add(visDataset);
+  var cs_c_name = createColumn("name");
+  visDataset.columns = Sequence {cs_c_name};
+  var visibilities = Sequence{UML!VisibilityKind#public,
+                              UML!VisibilityKind#protected,
+                              UML!VisibilityKind#private,
+                              UML!VisibilityKind#package};
+  var visibilityColumns = Map{};
+  for (visibility in visibilities) {
+    var columnName = "#" + visibility + "_attrs";
+    var column = createColumn(columnName);
+    visibilityColumns.put(columnName, column);
+    visDataset.columns.add(column);
+  }
+}
+@greedy
+rule AttributesByVisibility
+transform class : Model!Class
+       to row : Dataset!Row {
+  visDataset.rows.add(row);
+  row.cells.add(createCell(cbi_c_name, class.name));
+  for (visibility in visibilities) {
+    var column = visibilityColumns.get("#" + visibility + "_attrs");
+    row.cells.add(createCell(column, class.attributes
+                                          .select(a | a.visibility = visibility)
+                                          .size()));
+  }
+}
+
+pre nestedFromPre {
+  var nfDataset = createDataset("nestedFrom");
+  modelRoot.datasets.add(nfDataset);
+  var nf_c_name = createColumn("name");
+  var nf_c_packageName = createColumn("package_name");
+  var nf_c_packageNumClasses = createColumn("package_types_numClasses");
+  nfDataset.columns = Sequence {nf_c_name, nf_c_packageName, nf_c_packageNumClasses};
+}
+@greedy
+rule nestedFrom
+transform class : Model!Class
+       to row : Dataset!Row {
+  nfDataset.rows.add(row);
+  row.cells.add(createCell(nf_c_name, class.name));
+  var packageName = null;
+  if (class.package <> null) {packageName = class.package.name;}
+  row.cells.add(createCell(nf_c_packageName, packageName));
+  var packageNumClasses = null;
+  if (class.package <> null) {
+    packageNumClasses = 
+        class.package.ownedType.select(t | t.isKindOf(Model!Class)).size();
+  }
+  row.cells.add(createCell(nf_c_packageNumClasses, packageNumClasses));
+}
+
+pre typelessPre {
+  var thMetricsDataset = createDataset("thresholdMetrics");
+  modelRoot.datasets.add(thMetricsDataset);
+  var thm_c_threshold = createColumn("threshold");
+  var thm_c_noa = createColumn("classes_with_NOA_leq_th");
+  var thm_c_nom = createColumn("classes_with_NOM_leq_th");
+  var thm_c_fanIn = createColumn("classes_with_FanIn_geq_th");
+  var thm_c_fanOut = createColumn("classes_with_FanOut_geq_th");
+  thMetricsDataset.columns = Sequence {thm_c_threshold, thm_c_noa, thm_c_nom,
+                                       thm_c_fanIn, thm_c_fanOut};
+}
+
+post typelessDataset {
+  var allClasses = Model!Class.all();
+  var thresholds = Sequence{0,1,2,5,10};
+  for (threshold in thresholds) {
+    var row = new Dataset!Row;
+    thMetricsDataset.rows.add(row);
+    row.cells.add(createCell(thm_c_threshold, threshold));
+    row.cells.add(createCell(thm_c_noa, 
+        allClasses.select(c | c.attributes.size() <= threshold).size()));
+    row.cells.add(createCell(thm_c_nom, 
+        allClasses.select(c | c.operations.size() <= threshold).size()));
+    row.cells.add(createCell(thm_c_fanIn, 
+        allClasses.select(c | c.fanIn().size() >= threshold).size()));
+    row.cells.add(createCell(thm_c_fanOut, 
+        allClasses.select(c | c.fanOut().size() >= threshold).size()));
+  }
+}
+
+post end {
+  "Transformation finished".println();
+}
+
+operation createDataset(datasetName: String): Dataset!Dataset {
+  var d = new Dataset!Dataset();
+  d.name = datasetName;
+  return d;
+}
+
+operation createColumn(colName: String): Dataset!Column {
+  var col = new Dataset!Column();
+  col.name = colName;
+  return col;
+}
+
+operation createCell(col: Dataset!Column, val: Any): Dataset!Cell {
+  var cell = new Dataset!Cell();
+  cell.column = col;
+  cell.value = val;
+  return cell;
+}

@@ -15,7 +15,6 @@ post {
   "Generation finished".println();
 }
 
-// ALL metrics
 dataset allClassMetrics over class : Model!Class {
   column name : class.name
   // CK metrics
@@ -26,13 +25,13 @@ dataset allClassMetrics over class : Model!Class {
   // OO metrics
   column OO_FanIn : class.fanIn().size()
   column OO_FanOut : class.fanOut().size()
-  column OO_NOF : class.`features`.size()
+  column OO_NOF : class.features.size()
   column OO_NOA : class.`attributes`.size()
   column OO_NOPA : class.`attributes`
                         .select(a | a.visibility = UML!VisibilityKind#public)
                         .size()
   column OO_NOPRA : class.`attributes`
-                         .select(a | a.visibility = UML!VisibilityKind#public)
+                         .select(a | a.visibility = UML!VisibilityKind#private)
                          .size()
   column OO_NOIA : (class.allAttributes().size() -
                     class.`attributes`.size())

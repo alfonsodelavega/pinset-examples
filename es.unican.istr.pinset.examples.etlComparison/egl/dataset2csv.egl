@@ -16,6 +16,8 @@
   var columnNames = columns.collect(c | c.name);
   out.println(columnNames.concat(sep));
   for (row in dataset.rows) {
-    out.println(row.cells.collect(c | c.value).concat(sep));
+    out.println(row.cells.collect(c | 
+                                  c.value.ifUndefined("").asString())
+                         .concat(sep));
   }
 %]

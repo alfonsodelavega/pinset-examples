@@ -1,0 +1,73 @@
+/*******************************************************************************
+ * Copyright (c) 2018 University of York, University of Cantabria.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Alfonso de la Vega - Initial set of examples
+ ******************************************************************************/
+
+// Similar size to etl transformations - I will limit other examples to etl
+
+import "../../es.unican.istr.pinset.examples.common/lib/classDiagramMetrics.eol";
+
+
+"Transformation starts".println();
+
+var modelRoot = new Dataset!Model;
+var basicMetricsDataset = createDataset("BasicClassMetrics");
+modelRoot.datasets.add(basicMetricsDataset);
+var bmd_c_name = createColumn("name");
+var bmd_c_isAbstract = createColumn("isAbstract");
+var bmd_c_parentName = createColumn("parentName");
+var bmd_c_OO_NOA = createColumn("OO_NOA");
+var bmd_c_OO_NOM = createColumn("OO_NOM");
+var bmd_c_OO_NOF = createColumn("OO_NOF");
+var bmd_c_CK_DIT = createColumn("CK_DIT");
+basicMetricsDataset.columns = Sequence {bmd_c_name, bmd_c_isAbstract,
+                                        bmd_c_parentName, bmd_c_OO_NOA,
+                                        bmd_c_OO_NOM, bmd_c_OO_NOF,
+                                        bmd_c_CK_DIT};
+
+for (class in Model!Class.allInstances()) {
+  var row = new Dataset!Row;
+  basicMetricsDataset.rows.add(row);
+  row.cells.add(createCell(bmd_c_name, class.name));
+  row.cells.add(createCell(bmd_c_isAbstract, class.isAbstract.toString()));
+  var parentName = "";
+  if (not class.superClass.isEmpty()) {
+    parentName = class.superClass.first().name;
+  }
+  row.cells.add(createCell(bmd_c_parentName, parentName));
+  var OO_NOA = class.attributes.size();
+  var OO_NOM = class.operations.size();
+  var OO_NOF = OO_NOA + OO_NOM;
+  row.cells.add(createCell(bmd_c_OO_NOA, OO_NOA.toString()));
+  row.cells.add(createCell(bmd_c_OO_NOM, OO_NOM.toString()));
+  row.cells.add(createCell(bmd_c_OO_NOF, OO_NOF.toString()));
+  row.cells.add(createCell(bmd_c_CK_DIT, class.dit().toString()));
+}
+
+"Transformation finished".println();
+
+
+operation createDataset(datasetName: String): Dataset!Dataset {
+  var d = new Dataset!Dataset();
+  d.name = datasetName;
+  return d;
+}
+
+operation createColumn(colName: String): Dataset!Column {
+  var col = new Dataset!Column();
+  col.name = colName;
+  return col; 
+}
+
+operation createCell(col: Dataset!Column, val: String): Dataset!Cell {
+  var cell = new Dataset!Cell();
+  cell.column = col;
+  cell.value = val;
+  return cell;
+}
