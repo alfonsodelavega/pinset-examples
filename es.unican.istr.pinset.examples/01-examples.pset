@@ -77,7 +77,7 @@ dataset classSelectionGuard over class : Model!Class {
   properties [name]
 }
 
-dataset classSelectionFrom over class : Model!Class 
+dataset classSelectionFrom over class : Model!Class
     from : Model!Class.all().select(c | c.isAbstract) {
   properties [name]
 }
@@ -87,7 +87,7 @@ pre {
   var allClasses = Model!Class.all();
 }
 
-dataset thresholdMetrics over threshold 
+dataset thresholdMetrics over threshold
     from : Sequence{0,1,2,5,10} {
   column threshold : threshold
   column classes_with_NOA_leq_th : allClasses.select(c | c.attributes.size() <= threshold).size()
@@ -139,4 +139,11 @@ dataset postProcessing over class : Model!Class {
     }
     return name;
   }
+}
+
+// aliasing of properties and references columns
+dataset aliasingExamples over class : Model!Class {
+  properties [name as class_name, isAbstract]
+  reference package[name as pkg_name_simple,
+                    qualifiedName as pkg_name_qualified]
 }
