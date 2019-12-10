@@ -1,0 +1,97 @@
+/*******************************************************************************
+ * Copyright (c) 2018 University of York, University of Cantabria.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Set of features to train prediction models oriented to
+ *   label UML class diagrams as manually crafted (FwCD)
+ *   or reverse-engineered (RECD).
+ *
+ * Features source: Osman, M. H., Ho-Quang, T., & Chaudron, M. R. V. (2018).
+ *   An automated approach for classifying reverse-engineered and
+ *   forward-engineered UML class diagrams. Proceedings - 44th Euromicro
+ *   Conference on Software Engineering and Advanced Applications, SEAA 2018.
+ *   https://doi.org/10.1109/SEAA.2018.00070
+ *
+ * Contributors:
+ *     Alfonso de la Vega - Initial features calculation
+ ******************************************************************************/
+
+pre {
+  // Collections of classes and associations from the model are pre-calculated
+
+  // TODO: fix this classes calculation to allow obtaining the correct classes
+  //       no matter what root the uml class diagram has, or what other
+  //       models are referenced (pathmap according to UML editor)
+  var classes = Model!Model.allInstances().first()
+                                          .ownedElements
+                                          .select(e | e.type.name == "Class");
+
+  // TODO: fix the association count too (at model level there are associations
+  //       being included from the referenced models)
+  var associations =
+      Model!Association.allInstances()
+                       .select(a | classes.includesAll(a.getEndTypes()));
+}
+
+// Features numbered according to the paper source mentioned above (Table 1).
+// Some are calculated in a different order to reuse their values later
+dataset umlFwdVsRecvFeatures over m
+    from : Sequence{Model!Model.allInstances().first()} {
+
+  column modelName : m.name
+  column F01_avrParaOper {
+    var operations = classes.collect(c | c.operations).flatten();
+    return operations.collect(op | op.ownedParameters.size())
+                     .sum().asReal()
+                     / operations.size();
+  }
+  column F02_numPara : classes.collect(c | c.operations).flatten()
+                              .collect(op | op.ownedParameters).flatten()
+                              .size()
+  column F03_extOperPara : F02_numPara > 0
+
+  column F07_numCls : classes.size()
+  column F08_numAssoc : associations.size()
+  column F06_avgAssocCls : F08_numAssoc / F07_numCls
+  column F04_avgOperCls : classes.collect(c | c.operations.size())
+                                 .sum()
+                                 / F07_numCls
+
+  column F05_maxOperCls : classes.collect(c | c.operations.size()).max()
+  column F09_numOper : classes.collect(c | c.operations).flatten().size()
+
+  column F10_numOrpCls : classes.excludingAll(
+                                    associations.collect(a | a.getEndTypes())
+                                                .flatten()
+                                                .asSet())
+                                .size()
+
+  column F11_avgOrpCls : F10_numOrpCls / F07_numCls
+  column F13_numAttr : classes.collect(c | c.attributes.size()).sum()
+  column F12_avgAttrCls : F07_numCls / F13_numAttr
+  column F14_maxAttrCls : classes.collect(c | c.attributes.size()).max()
+  column F15_extOrpCls : F10_numOrpCls > 0
+
+  column F16_numAssocType {
+    var numAssocTypes = 0;
+    if (Model!Generalization.allInstances().size() > 0) {
+      numAssocTypes += 1;
+    }
+    if (Model!Realization.allInstances().size() > 0) {
+      numAssocTypes += 1;
+    }
+    if (Model!Property.allInstances()
+                      .select(p | p.aggregation.asString() == "shared")
+                      .size() > 0) {
+      numAssocTypes += 1;
+    }
+    return numAssocTypes;
+  }
+}
+
+post {
+  "Generation finished".println();
+}
