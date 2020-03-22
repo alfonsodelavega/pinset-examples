@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="es.unican.istr.pinset.dt.launching.PinsetLaunchConfigurationDelegate">
 <booleanAttribute key="fine_grained_profiling" value="false"/>
+<stringAttribute key="implementation_name" value="Pinset"/>
 <listAttribute key="models">
 <listEntry value="aliases=&#10;modelFile=/es.unican.istr.pinset.examples.common/models/DungeonQuest.uml&#10;name=Model&#10;expand=true&#10;cached=true&#10;type=UML&#10;storeOnDisposal=false&#10;readOnLoad=true"/>
 <listEntry value="aliases=&#10;name=UML&#10;cached=true&#10;type=EMF_M2&#10;metamodelUri=http\://www.eclipse.org/uml2/4.0.0/UML"/>
