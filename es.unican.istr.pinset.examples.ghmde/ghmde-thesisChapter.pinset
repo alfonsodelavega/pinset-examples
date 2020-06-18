@@ -1,0 +1,166 @@
+post {
+  "Generation done".println();
+}
+
+// Overview example
+// Has problems with user.id nullness
+dataset CH01_RepositoriesInfo over r : Repository {
+  column name : r.name
+  column owner_name : r.owner.name
+  column owner_id : r.owner.id
+  column number_of_commits : r.commits.size()
+  column owner_commits_ratio {
+    if (number_of_commits == 0) {
+      return 0;
+    }
+    return r.commits.select(c | c.user = r.owner)
+                    .size()
+                    / number_of_commits;
+  }
+  column files_with_several_commits : r.filesWithMoreCommitsThan(1)
+                                       .size()
+}
+
+operation Repository filesWithMoreCommitsThan(numCommits: Integer) {
+  return self.files.select(f | f.commits.size() > numCommits);
+}
+
+// Accesor generators
+dataset CH02_RepositoriesInfo over r : Repository {
+  properties[name]
+  reference owner[name, id]
+}
+
+// Filtering mechanisms
+dataset DeveloperSelectionGuard over d : Developer {
+  guard : d.commits.size() > 25
+  properties [name, email]
+}
+
+dataset DevelopersSelectionFrom over d : Ghmde!Developer
+    from : Ghmde!Developer.all.select(dev | dev.commits.size() > 25) {properties[name]}
+
+// Grid generator
+@cached
+operation Repository getUsedTechnologies() {
+  return self.files.collect(f | f.technology).asSet();
+}
+
+dataset technologiesInRepository over r : Repository {
+  properties [name]
+  grid {
+    keys : Technology.all
+    header : "uses_" + key.name
+    body : r.getUsedTechnologies().includes(key)
+  }
+}
+
+
+// Typeless rules
+operation String getYear() : Integer{
+  return self.substring(0,4).asInteger();
+}
+
+@cached
+operation commitsByYear(year : Integer) {
+  return Commit.all.select(c | c.date.getYear() == year);
+}
+
+dataset infoByYear over year from : 2003.to(2014) {
+  column year : year
+  column num_commits : commitsByYear(year).size()
+  column num_devs : commitsByYear(year).collect(c | c.author.email)
+                                       .asSet()
+                                       .size()
+}
+
+// Nested from
+operation String getYear() : Integer{
+  return self.substring(0,4).asInteger();
+}
+
+operation Repository asString() {
+  return self.name;
+}
+
+// Sequence must be sorted
+operation Sequence mostRepeatedElement() {
+  if (self.isEmpty()) {
+    return null;
+  }
+  var max = self.first();
+  var maxCount = 1;
+  var current = max;
+  var count = 0;
+  for (elem in self) {
+    if (elem == current) {
+      count += 1;
+    } else {
+      if (count > maxCount) {
+        maxCount = count;
+        max = current;
+      }
+      count = 1;
+      current = elem;
+    }
+  }
+  // check last current elem
+  if (count > max) {
+    max = current;
+  }
+  return max.asString();
+}
+
+@cached
+operation Collection getUsedTechnologies() {
+  return self.collect(commit | commit.files)
+             .flatten()
+             .collect(file | file.technology)
+             .asSet();
+}
+
+dataset nestedFrom over d : Developer {
+  properties [name, email]
+  from recent_commits : d.commits.select(c | c.date.getYear() == 2014) {
+    column number : recent_commits.size()
+    column most_contributed_to : recent_commits.collect(c | c.eContainer())
+                                               .asSequence()
+                                               .sortBy(r | r.name)
+                                               .mostRepeatedElement()
+    grid {
+      keys : Technology.all
+      header : "use_" + key.name
+      body : recent_commits.getUsedTechnologies().includes(key)
+    }
+  }
+}
+
+// From with pre
+pre {
+  var devsWithSomeCommits =  Developer.all.select(dev | dev.commits.size() > 25);
+}
+
+dataset developersSelectionFrom over d : Developer
+  from : devsWithSomeCommits {
+    properties[name]
+    column number_of_commits : d.commits.size()
+}
+
+// Post-Processing
+dataset postProcessing over r : Repository {
+  properties [name]
+  @fillNulls "unknownId"
+  column owner_id : r.owner.id
+  @normalize
+  column stargazers : r.stargazers
+  @normalize
+  column number_of_commits : r.commits.size()
+}
+
+
+dataset testNulls over r : Repository {
+  column name : r.name
+  column owner_name : r.owner.name
+  @fillNulls "unknownId"
+  column owner_id : r.owner.id
+}

@@ -1,0 +1,135 @@
+post {
+  "Generation done".println();
+}
+
+// Over repositories, get name, name of the owner, number of files in
+// the repository, and number of files with more than one commit.
+dataset A01_FirstExample over r : Ghmde!Repository {
+  column name : r.name
+  column owner_name : r.owner.name
+  column owner_id : r.owner.id
+  column number_of_files : r.files.size()
+  column files_with_several_commits : r.files
+                                       .select(f | f.commits.size() > 1)
+                                       .size()
+}
+
+// Tecnologies by developer example (uses a pre structure, this is what will
+//   happen in the ETL example too).
+
+pre {
+  var technologyDevs = new Map();
+  for (tech in Ghmde!Technology.all) {
+    technologyDevs.put(tech, tech.files
+                                 .collect(f | f.commits)
+                                 .flatten()
+                                 .collect(c | c.author)
+                                 .asSet()); // also it could be removed here
+  }
+}
+
+dataset A02_Grid_Example over d : Ghmde!Developer {
+  properties [name]
+  grid {
+    keys: Ghmde!Technology.allInstances()
+    header: "uses_" + key.name
+    body:  technologyDevs.get(key)
+                         .includes(d)
+  }
+}
+
+// Technologies by repo
+@cached
+operation Ghmde!Repository getUsedTechnologies() {
+  return self.files
+             .collect(f | f.technology)
+             .asSet();
+}
+
+dataset A03_TechnologiesInRepository over r : Ghmde!Repository {
+  properties [name]
+  grid {
+    keys : Ghmde!Technology.all
+    header : "employs_" + key.name
+    body : r.getUsedTechnologies().includes(key)
+  }
+}
+
+// Selection of datasets based on a number of commits threshold
+dataset A04_DevelopersSelectionGuard over d : Ghmde!Developer {
+  guard : d.commits.size() > 25
+  properties [name, email]
+  column number_of_commits : d.commits.size()
+}
+
+dataset A05_DevelopersSelectionFrom over d : Ghmde!Developer
+        from : Ghmde!Developer.all.select(d | d.commits.size() > 25) {
+  properties [name, email]
+  column number_of_commits : d.commits.size()
+}
+
+// Use of from expression to define a dataset "without a type"
+// Performance problem: iterating over all commits of each technology
+//   once per year value
+// Define some grouping function for this cases?
+
+dataset A06_CommitsPerYearAndTech over year from : 2003.to(2015) {
+  column year : year
+  grid {
+    keys : Ghmde!Technology.all
+    header : key.name + "_num_commits"
+    body : key.files.commits.flatten().asSet()
+                            .select(c | c.date.startsWith(year.asString()))
+                            .size()
+  }
+}
+
+dataset A07_TechnologiesUsedTogether over tech : Ghmde!Technology {
+  properties [name]
+  grid {
+    keys : Ghmde!Technology.all
+    header : key.name
+    body : Ghmde!Repository.all
+                           .collect(r | r.getUsedTechnologies())
+                           .select(techList | techList.includes(tech)
+                                              and techList.includes(key))
+                           .size()
+  }
+}
+
+@cached
+operation Ghmde!Technology getNumberOfRepositories() : Integer {
+  return self.files.collect(f | f.repository).asSet().size();
+}
+
+dataset A08_TechnologiesUsedTogetherRatio over tech : Ghmde!Technology {
+  properties [name]
+  grid {
+    keys : Ghmde!Technology.all
+    header : key.name
+    body : Ghmde!Repository.all
+                           .collect(r | r.getUsedTechnologies())
+                           .select(techList | techList.includes(tech)
+                                              and techList.includes(key))
+                           .size().asReal()
+                           / tech.getNumberOfRepositories()
+  }
+}
+
+dataset A09_RepositoryNumericalInfo over repo : Ghmde!Repository {
+  properties [stargazers, watchers, forks]
+  column id : repo.owner.name + "_" + repo.name
+  column is_fork {
+    if (repo.fork) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  column number_of_files : repo.files.size()
+  column files_with_several_commits : repo.files
+                                          .select(f | f.commits.size() > 1)
+                                          .size()
+  column number_of_commits : repo.commits.size()
+  column number_diff_developers : repo.commits.author.asSet().size()
+}
